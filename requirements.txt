@@ -1,0 +1,7 @@
+optuna
+loguru
+plotly
+ipython
+jupyterlab
+nbformat
+ipywidgets

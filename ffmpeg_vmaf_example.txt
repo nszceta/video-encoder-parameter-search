@@ -1,0 +1,76 @@
+# ffmpeg libvmaf video order: output then input
+#    -f null    replaces    -report -f null -
+
+# works; powershell
+ffmpeg.exe `
+    -ss 00:01:00 -to 00:01:02 `
+    -i C:\Users\adam\Videos\Panasonic\A003C027_230228_DJ0B_COMPRESSED.MKV `
+    -ss 00:01:00 -to 00:01:02 `
+    -i C:\Users\adam\Videos\Panasonic\A003C027_230228_DJ0B.MOV `
+    -lavfi libvmaf="model=version=vmaf_v0.6.1neg:log_path=vmaf.json" `
+    -report -f null -
+
+# works; cmd (NOT POWERSHELL!)
+ffmpeg.exe ^
+    -ss 00:01:00 -to 00:01:02 ^
+    -i C:\Users\adam\Videos\Panasonic\A003C027_230228_DJ0B_COMPRESSED.MKV ^
+    -ss 00:01:00 -to 00:01:02 ^
+    -i C:\Users\adam\Videos\Panasonic\A003C027_230228_DJ0B.MOV ^
+    -lavfi libvmaf="model=version=vmaf_v0.6.1neg:log_path=vmaf.json" ^
+    -report -f null -
+
+# works; cmd (NOT POWERSHELL!)
+ffmpeg ^
+    -ss 00:01:00 -to 00:01:02 ^
+    -i C:\Users\adam\Videos\Panasonic\A003C027_230228_DJ0B.MOV ^
+    -c:v libx265 -crf 30 -an -f nut pipe: | ffmpeg.exe ^
+    -ss 00:01:00 -to 00:01:02 ^
+    -i C:\Users\adam\Videos\Panasonic\A003C027_230228_DJ0B_COMPRESSED.MKV ^
+    -f nut -i pipe: ^
+    -lavfi libvmaf="model=version=vmaf_v0.6.1neg:log_path=vmaf.json" ^
+    -f null -
+
+# 26 = VMAF score: 77.060890
+# 27 = VMAF score: 76.883083
+# 28 = VMAF score: 76.535318
+# 29 = VMAF score: 76.044728
+# 30 = VMAF score: 75.397145
+
+
+########## EXPERIMENTS BELOW ##########################################################################################
+ffmpeg ^
+    -ss 00:01:00 -to 00:01:02 ^
+    -i C:\Users\adam\Videos\Panasonic\A003C027_230228_DJ0B.MOV ^
+    -thread_queue_size 4096 ^
+    -pixel_format yuv444p16le ^
+    -c:v hevc_nvenc -profile:v rext -b_ref_mode 0 -preset:v slow -an -f nut pipe: | ffmpeg.exe ^
+    -ss 00:01:00 -to 00:01:02 ^
+    -i C:\Users\adam\Videos\Panasonic\A003C027_230228_DJ0B_COMPRESSED.MKV ^
+    -thread_queue_size 4096 ^
+    -f nut -i pipe: ^
+    -lavfi libvmaf="model=version=vmaf_v0.6.1neg:log_path=vmaf.json" ^
+    -f null -
+
+-----
+del output.mkv
+del input.mkv
+
+ffmpeg ^
+    -ss 00:01:00 -to 00:01:02 ^
+    -i C:\Users\adam\Videos\Panasonic\A003C074_230408_DJ0B.MOV ^
+    -c:v copy -an input.mkv
+
+ffmpeg ^
+    -i input.mkv ^
+    -pixel_format yuv444p16le ^
+    -c:v hevc_nvenc -profile:v rext -b_ref_mode 0 -preset:v slow ^
+    -b:v 0M -rc constqp -qp 28 ^
+    -an output.mkv
+
+ffmpeg.exe ^
+    -i input.mkv ^
+    -i output.mkv ^
+    -lavfi libvmaf="n_threads=12:model=version=vmaf_v0.6.1neg:log_path=vmaf.json" ^
+    -f null -
+-----
+
